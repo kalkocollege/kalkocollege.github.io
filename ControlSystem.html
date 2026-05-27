@@ -9,7 +9,7 @@
     <body>
         <a href="index.html">Back</a></br>
         <h1>The simulation:</h1>
-        Let the arm be defined by the state vector \(\mathbf{q}=\begin{bmatrix}\theta_1\\ \theta_2\end{bmatrix}\), where \(\theta_1\) is defined relative to the horizontal axis and \(\theta_2\) is the angle between the segments. Furthermore, let segment \(i\) of the arm have a length \(l_i\), a mass \(m_i\), and a moment of inertia \(I_i\). Then the position vector of the end of the arm is \(\mathbf{x}=\begin{bmatrix}l_1\cos(\theta_1)+l_2\cos(\theta_1+\theta_2)\\ l_1\sin(\theta_1)+l_2\sin(\theta_1+\theta_2)\end{bmatrix}\).</br>
+        Let a 2D two-segment robotic arm be defined by the state vector \(\mathbf{q}=\begin{bmatrix}\theta_1\\ \theta_2\end{bmatrix}\), where \(\theta_1\) is defined relative to the horizontal axis and \(\theta_2\) is the angle between the segments. Furthermore, let segment \(i\) of the arm have a length \(l_i\), a mass \(m_i\), and a moment of inertia \(I_i\). Then the position vector of the end of the arm is \(\mathbf{x}=\begin{bmatrix}l_1\cos(\theta_1)+l_2\cos(\theta_1+\theta_2)\\ l_1\sin(\theta_1)+l_2\sin(\theta_1+\theta_2)\end{bmatrix}\).</br>
         Let there be two inputs present, \(\tau_1\) and \(\tau_2\), applied to the first and second joint of the structure, respectively.</br>
         In order to derive the equations of motion for this system, we need to express the kinetic and potential energy in terms of the state vector \(\mathbf{q}\) and its derivative, \(\mathbf{\dot{q}}\).</br>
         The potential energy of the system is \(\displaystyle V=\sum_{i=1}^2 m_igy_i\), while the kinetic energy is \(T=\sum_{i=1}^2 (\frac{1}{2}m_iv_i^2+\frac{1}{2}I_i\omega_i^2)\).
