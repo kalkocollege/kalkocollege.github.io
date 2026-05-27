@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Control System</title>
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <a href="index.html">Back</a></br>
+        <h1>The simulation:</h1>
+        Let the arm be defined by the state vector \(\mathbf{q}=\begin{bmatrix}\theta_1\\ \theta_2\end{bmatrix}\), where \(\theta_1\) is defined relative to the horizontal axis and \(\theta_2\) is the angle between the segments. Furthermore, let segment \(i\) of the arm have a length \(l_i\), a mass \(m_i\), and a moment of inertia \(I_i\). Then the position vector of the end of the arm is \(\mathbf{x}=\begin{bmatrix}l_1\cos(\theta_1)+l_2\cos(\theta_1+\theta_2)\\ l_1\sin(\theta_1)+l_2\sin(\theta_1+\theta_2)\end{bmatrix}\).</br>
+        Let there be two inputs present, \(\tau_1\) and \(\tau_2\), applied to the first and second joint of the structure, respectively.</br>
+        In order to derive the equations of motion for this system, we need to express the kinetic and potential energy in terms of the state vector \(\mathbf{q}\) and its derivative, \(\mathbf{\dot{q}}\).</br>
+        The potential energy of the system is \(\displaystyle V=\sum_{i=1}^2 m_igy_i\), while the kinetic energy is \(T=\sum_{i=1}^2 (\frac{1}{2}m_iv_i^2+\frac{1}{2}I_i\omega_i^2)\).
+        In order to express these in terms of our state vector, we must define:</br>
+        <div style="overflow-x: auto"><table style="margin: 10px">
+            <tr>
+                <th>Variable</th><th>Value</th><th>Derivative</th>
+            </tr>
+            <tr>
+                <td>\(x_1\)</td><td>\(\frac{1}{2}l_1\cos(\theta_1)\)</td><td>\(-\frac{1}{2}l_1\sin(\theta_1)\dot{\theta}_1\)</td>
+            </tr>
+            <tr>
+                <td>\(y_1\)</sub></td><td>\(\frac{1}{2}l_1\sin(\theta_1)\)</td><td>\(\frac{1}{2}l_1\cos(\theta_1)\dot{\theta}_1\)</td>
+            </tr>
+            <tr>
+                <td>\(v_1^2\)</td><td>\(\frac{1}{4}l_1^2\dot{\theta}_1^2\)</td><td>N/A</td>
+            </tr>
+            <tr>
+                <td>\(\omega_1^2\)</td><td>\(\dot{\theta}_1^2\)</td><td>N/A</td>
+            </tr>
+            <tr>
+                <td>\(x_2\)</td><td>\(l_1\cos(\theta_1)+\frac{1}{2}l_2\cos(\theta_1+\theta_2)\)</td><td>\(-l_1\sin(\theta_1)\dot{\theta}_1-\frac{1}{2}l_2\sin(\theta_1+\theta_2)(\dot{\theta}_1+\dot{\theta}_2)\)</td>
+            </tr>
+            <tr>
+                <td>\(y_2\)</sub></td><td>\(l_1\sin(\theta_1)+\frac{1}{2}l_2\sin(\theta_1+\theta_2)\)</td><td>\(l_1\cos(\theta_1)\dot{\theta}_1+\frac{1}{2}l_2\cos(\theta_1+\theta_2)(\dot{\theta}_1+\dot{\theta}_2)\)</td>
+            </tr>
+            <tr>
+                <td>\(v_2^2\)</td><td>\(l_1^2\dot{\theta}_1^2+\frac{l_2^2}{4}(\dot{\theta}_1^2+2\dot{\theta}_1\dot{\theta}_2+\dot{\theta}_2^2)+l_1l_2\cos(\theta_2)(\dot{\theta}_1^2+\dot{\theta}_1\dot{\theta}_2)\)</td><td>N/A</td>
+            </tr>
+            <tr>
+                <td>\(\omega_2^2\)</td><td>\(\dot{\theta}_1^2+2\dot{\theta}_1\dot{\theta}_2+\dot{\theta}_2^2\)</td><td>N/A</td>
+            </tr>
+        </table></div>
+        With these defined, we can create the Lagrangian:
+        $$L=T-V=\left(\frac{1}{8}m_1l_1^2\dot{\theta}_1^2+\frac{1}{2}I_1\dot{\theta}_1^2+\frac{1}{2}m_2\left(l_1^2\dot{\theta}_1^2+\frac{l_2^2}{4}(\dot{\theta}_1^2+2\dot{\theta}_1\dot{\theta}_2+\dot{\theta}_2^2)+l_1l_2\cos(\theta_2)(\dot{\theta}_1^2+\dot{\theta}_1\dot{\theta}_2)\right)+\frac{1}{2}I_2\left(\dot{\theta}_1^2+2\dot{\theta}_1\dot{\theta}_2+\dot{\theta}_2^2\right)\right)-\left(\frac{1}{2}m_1gl_1\sin(\theta_1)+m_2g\left(l_1\sin(\theta_1)+\frac{1}{2}l_2\sin(\theta_1+\theta_2)\right)\right)$$
+        $$\frac{\partial L}{\partial \theta_1}=-\frac{m_1gl_1}{2}\cos(\theta_1)-m_2gl_1\cos(\theta_1)-\frac{m_2gl_2}{2}\cos(\theta_1+\theta_2)$$
+        $$\frac{\partial L}{\partial \theta_2}=-\frac{m_2l_1l_2}{2}\sin(\theta_2)(\dot{\theta}_1^2+\dot{\theta}_1\dot{\theta}_2)-\frac{m_2gl_2}{2}\cos(\theta_1+\theta_2)$$
+        $$\frac{\partial L}{\partial \dot{\theta}_1}=\left(\frac{m_1l_1^2}{4}+I_1+m_2l_1^2+\frac{m_2l_2^2}{4}+I_2\right)\dot{\theta}_1+\left(\frac{m_2l_2^2}{4}+I_2\right)\dot{\theta}_2+\frac{m_2l_1l_2}{2}\cos(\theta_2)(2\dot{\theta}_1+\dot{\theta}_2)$$
+        $$\frac{\partial L}{\partial \dot{\theta}_2}=\left(\frac{m_2l_2^2}{4}+I_2\right)(\dot{\theta}_1+\dot{\theta}_2)+\frac{m_2l_1l_2}{2}\cos(\theta_2)\dot{\theta}_1$$
+        $$\frac{\partial}{\partial t}\left(\frac{\partial L}{\partial \dot{\theta}_1}\right)=\left(\frac{m_1l_1^2}{4}+I_1+m_2l_1^2+\frac{m_2l_2^2}{4}+I_2\right)\ddot{\theta}_1+\left(\frac{m_2l_2^2}{4}+I_2\right)\ddot{\theta}_2-\frac{m_2l_1l_2}{2}\sin(\theta_2)(2\dot{\theta}_1\dot{\theta_2}+\dot{\theta}_2^2)+\frac{m_2l_1l_2}{2}\cos(\theta_2)(2\ddot{\theta}_1+\ddot{\theta}_2)$$
+        $$\frac{\partial}{\partial t}\left(\frac{\partial L}{\partial \dot{\theta}_2}\right)=\left(\frac{m_2l_2^2}{4}+I_2\right)(\ddot{\theta}_1+\ddot{\theta}_2)-\frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_1\dot{\theta}_2+\frac{m_2l_1l_2}{2}\cos(\theta_2)\ddot{\theta}_1$$
+        Then, the equations of motion are defined by \(\frac{\partial}{\partial t}\left(\frac{\partial L}{\partial\dot{q}_i}\right)-\frac{\partial L}{\partial q_i}=\tau_i\).
+        $$\left(I_1+I_2+\frac{m_1l_1^2}{4}+m_2l_1^2+\frac{m_2l_2^2}{4}+m_2l_1l_2\cos(\theta_2)\right)\ddot{\theta}_1+\left(I_2+\frac{m_2l_2^2}{4}+\frac{m_2l_1l_2}{2}\cos(\theta_2)\right)\ddot{\theta}_2+\left(\frac{m_1gl_1}{2}\cos(\theta_1)+m_2gl_1\cos(\theta_1)+\frac{m_2gl_2}{2}\cos(\theta_1+\theta_2)-m_2l_1l_2\sin(\theta_2)\dot{\theta}_1\dot{\theta_2}-\frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_2^2\right)=\tau_1$$
+        $$\left(I_2+\frac{m_2l_2^2}{4}+\frac{m_2l_1l_2}{2}\cos(\theta_2)\right)\ddot{\theta}_1+\left(I_2+\frac{m_2l_2^2}{4}\right)\ddot{\theta}_2+\left(\frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_1^2+\frac{m_2gl_2}{2}\cos(\theta_1+\theta_2)\right)=\tau_2$$
+        This can be concisely represented with the equation \(M(q)\ddot{q}+C(q,\dot{q})\dot{q}+G(q)=\tau\), where:
+        $$M(q)=\begin{bmatrix}I_1+I_2+\frac{m_1l_1^2}{4}+m_2l_1^2+\frac{m_2l_2^2}{4}+m_2l_1l_2\cos(\theta_2) & I_2+\frac{m_2l_2^2}{4}+\frac{m_2l_1l_2}{2}\cos(\theta_2) \\ I_2+\frac{m_2l_2^2}{4}+\frac{m_2l_1l_2}{2}\cos(\theta_2) & I_2+\frac{m_2l_2^2}{4}\end{bmatrix}$$
+        $$C(q,\dot{q})=\begin{bmatrix}-\frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_2 & -\frac{m_2l_1l_2}{2}\sin(\theta_2)(\dot{\theta}_1+\dot{\theta}_2) \\ \frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_1 & 0\end{bmatrix}$$
+        $$G(q)=\begin{bmatrix}\frac{m_1gl_1}{2}\cos(\theta_1)+m_2gl_1\cos(\theta_1)+\frac{m_2gl_2}{2}\cos(\theta_1+\theta_2) \\ \frac{m_2gl_2}{2}\cos(\theta_1+\theta_2)\end{bmatrix}$$
+        <h1>The controller:</h1>
+        Let a controller be designed so that a user may select a point within the reach of the arm \((x,y)\) relative to the arm's base for the tip of the arm to reach. Then, by the cosine law, we know that \(x^2+y^2=l_1^2+l_2^2-2l_1l_2\cos(\pi-\theta_2)=l_1^2+l_2^2+2l_1l_2\cos(\theta_2)\). Then, \(\theta_2=\pm\cos^{-1}\left(\frac{x^2+y^2-l_1^2-l_2^2}{2l_1l_2}\right)\).</br>
+        Next, we know that \(\theta_1\) plus the angle at the origin from the first segment of the arm to the target \(\phi_i\) is equal to the angle from horizontal to the target \(\phi_t\); i.e., \(\theta_1+\phi_i=\phi_t\). \(\phi_i\) and \(\phi_t\) can be expressed in the two-argument arc-tangent function. For \(\phi_t\), this is \(\arctan(y,x)\). For \(\phi_i\), this is \(\arctan2(l_2\sin(\theta_2),l_1+l_2\cos(\theta_2))\). Thus, \(\theta_1=\arctan2(y,x)-\arctan2(l_2\sin(\theta_2),l_1+l_2\cos(\theta_2))\).
+        <canvas id="canvas"></canvas>
+        <script src="processing.js"></script>
+        <script src="math.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>
+        var programCode = function(processingInstance) {
+            const p=processingInstance;
+            p.size(800, 800);
+
+            p.strokeCap(p.SQUARE);
+            let theta1=p.PI/4;
+            let theta2=0;
+            let omega1=0;
+            let omega2=0;
+            let alpha1=0;
+            let alpha2=0;
+            let m1=25;
+            let w1=0.1;
+            let l1=5;
+            let m2=15;
+            let w2=0.1;
+            let l2=1;
+            let g=9.8;
+            let I1=m1/12*(p.sq(w1)+p.sq(l1));
+            let I2=m2/12*(p.sq(w2)+p.sq(l2));
+            let maxReach=l1+l2;
+            let minReach=p.max(l1-l2,0);
+            let scale=p.width/maxReach*0.45;
+            let mu=0;
+            let esum=0;
+
+            let MVar;
+            let M;
+            let CVar;
+            let C;
+            let G=math.matrix([[m1*g*l1*p.cos(theta1)/2+m2*g*l1*p.cos(theta1)+m2*g*l2*p.cos(theta1+theta2)/2],[m2*g*l2*p.cos(theta1+theta2)/2]]);
+            let qdot=math.matrix([[omega1],[omega2]]);
+            let q;
+            let tau;
+            let TauVec;
+            let T=0;
+            let V;
+            let E;
+            const TimeStep=0.0001;
+
+            let M11Const=I1+I2+m1*p.sq(l1)/4+m2*p.sq(l1)+m2*p.sq(l2)/4;
+            let M12Const=I2+m2*p.sq(l2)/4;
+            let M21Const=M12Const;
+            let M22Const=I2+m2*p.sq(l2)/4;
+            let VarCoef=m2*l1*l2/2;
+            
+            let TargetX=0*maxReach;
+            let TargetY=0.5*(maxReach+minReach);
+
+            const UpdateArm=function(tau1, tau2) {
+                if (tau2===undefined) {
+                    tau2=math.subset(tau1,math.index(1,0));
+                    tau1=math.subset(tau1,math.index(0,0));
+                }
+                MVar=VarCoef*p.cos(theta2);
+                M=math.matrix([[M11Const+2*MVar,M12Const+MVar],[M21Const+MVar,M22Const]]);
+                CVar=VarCoef*p.sin(theta2);
+                C=math.matrix([[-CVar*omega2,-CVar*(omega1+omega2)],[CVar*omega1,0]]);
+                qdot=math.matrix([[omega1],[omega2]]);
+                G=math.matrix([[m1*g*l1*p.cos(theta1)/2+m2*g*l1*p.cos(theta1)+m2*g*l2*p.cos(theta1+theta2)/2],[m2*g*l2*p.cos(theta1+theta2)/2]]);
+                tau=math.matrix([[tau1],[tau2]]);
+                let B=math.subtract(math.subtract(tau,G),math.multiply(C,qdot));
+                let F=math.multiply(qdot,mu);
+                B=math.subtract(B,F);
+                //let A=math.multiply(math.inv(M),B);
+                let A=math.lusolve(M,B);
+                T=1/2*(I1*p.sq(omega1)+I2*p.sq(omega2)+m1*(1/4*p.sq(l1*omega1))+m2*(p.sq(l1*omega1)+p.sq(l2*(omega1+omega2))/4+l1*l2*p.cos(theta2)*(p.sq(omega1)+omega1*omega2)));
+                V=m1*g*l1/2*p.sin(theta1)+m2*g*(l1*p.sin(theta1)+l2/2*p.sin(theta1+theta2));
+                E=T+V;
+                //p.println(T+V);
+                alpha1=math.subset(A,math.index(0,0));
+                alpha2=math.subset(A,math.index(1,0));
+                omega1+=alpha1*TimeStep;
+                omega2+=alpha2*TimeStep;
+                theta1+=omega1*TimeStep;
+                theta2+=omega2*TimeStep;
+            };
+
+            const GetTau=function(Method) {
+                if (Method===undefined) {
+                    Method=0;
+                }
+                let Tau=math.matrix([[0],[0]]);
+                if (Method===0) {
+                    //Jacobian Transpose Control
+                    let xd=math.matrix([[TargetX],[TargetY]]);
+                    let x=math.matrix([[l1*p.cos(theta1)+l2*p.cos(theta1+theta2)],[l1*p.sin(theta1)+l2*p.sin(theta1+theta2)]]);
+                    let e=math.subtract(xd,x);
+                    let J=math.matrix([[-l1*p.sin(theta1)-l2*p.sin(theta1+theta2), -l2*p.sin(theta1+theta2)],[l1*p.cos(theta1)+l2*p.cos(theta1+theta2),l2*p.cos(theta1+theta2)]]);
+                    let xdot=math.multiply(J,qdot);
+                    esum=math.add(esum,e);
+                    let Kp=200;
+                    let Kd=50;
+                    let Ki=0;
+                    let F=math.add(math.subtract(math.multiply(Kp,e),math.multiply(Kd,xdot)),math.multiply(Ki,esum));
+                    Tau=math.add(math.multiply(math.transpose(J),F),G);
+                }
+                return Tau;
+            }
+
+            p.mouseClicked=function() {
+                p.println(p.mouseX-p.width/2);
+                let Radius=p.sqrt(p.sq(p.mouseX-p.width/2)+p.sq(p.mouseY-p.height/2));
+                if (Radius/scale<=maxReach&&Radius/scale>=minReach) {
+                    TargetX=(p.mouseX-p.width/2)/scale;
+                    TargetY=-(p.mouseY-p.height/2)/scale;
+                    p.println(TargetX+", "+TargetY);
+                }
+            }
+
+            p.draw=function() {
+                p.background(255,255,255);
+                p.text("T="+T+"\nV="+V+"\nE="+E, 50, 50);
+                p.pushMatrix();
+                p.translate(p.width/2,p.height/2);
+                p.noStroke()
+                p.fill(0,0,0);
+                p.ellipse(0,0,w1*scale,w1*scale);
+                p.stroke(0,0,0);
+                p.strokeWeight(w1*scale);
+                p.line(0,0,l1*scale*p.cos(theta1),-l1*scale*p.sin(theta1));
+                p.noStroke();
+                p.ellipse(l1*scale*p.cos(theta1),-l1*scale*p.sin(theta1),p.max(w1,w2)*scale,p.max(w1,w2)*scale);
+                p.stroke(0,0,0);
+                p.strokeWeight(w2*scale);
+                p.line(l1*scale*p.cos(theta1),-l1*scale*p.sin(theta1),l1*scale*p.cos(theta1)+l2*scale*p.cos(theta1+theta2),-l1*scale*p.sin(theta1)-l2*scale*p.sin(theta1+theta2));
+                p.noFill();
+                p.strokeWeight(1);
+                p.ellipse(0,0,minReach*scale*2,minReach*scale*2);
+                p.ellipse(0,0,maxReach*scale*2,maxReach*scale*2);
+                p.fill(255, 0, 0);
+                p.ellipse(TargetX*scale,-TargetY*scale,10,10);
+                p.popMatrix();
+                for (let i=0; i<1/(60*TimeStep); i++) {
+                    TauVec=GetTau();
+                    UpdateArm(TauVec);
+                }
+                p.text(math.subset(TauVec,math.index(0,0))+"\n"+math.subset(TauVec,math.index(1,0)),p.width-50,50);
+            };
+        };
+
+        // Get the canvas that ProcessingJS will use
+        const mycanvas = document.getElementById("canvas"); 
+        // Pass the function to ProcessingJS constructor
+        let processingInstance = new Processing(mycanvas, programCode);
+        </script>
+        <script>
+        /*var programCode2 = function(processingInstance) {
+            const p=processingInstance;
+            p.size(800, 800);
+            p.background(255, 255, 255);
+            p.noFill();
+            p.stroke(0,0,0);
+            p.strokeWeight(1);
+            p.ellipse(p.width/2,p.height/2,0.9*p.width,0.9*p.height);
+            p.noStroke();
+            p.fill(255, 0, 0);
+            p.ellipse(p.width*3/4,p.height*1/3,p.width/50,p.height/50);
+        };
+        // Get the canvas that ProcessingJS will use
+        const mycanvas2 = document.getElementById("canvas2"); 
+        // Pass the function to ProcessingJS constructor
+        let processingInstance2 = new Processing(mycanvas2, programCode2);
+        */
+        </script>
+    </body>
+</html>
