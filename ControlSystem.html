@@ -59,11 +59,22 @@
         $$C(q,\dot{q})=\begin{bmatrix}-\frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_2 & -\frac{m_2l_1l_2}{2}\sin(\theta_2)(\dot{\theta}_1+\dot{\theta}_2) \\ \frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_1 & 0\end{bmatrix}$$
         $$G(q)=\begin{bmatrix}\frac{m_1gl_1}{2}\cos(\theta_1)+m_2gl_1\cos(\theta_1)+\frac{m_2gl_2}{2}\cos(\theta_1+\theta_2) \\ \frac{m_2gl_2}{2}\cos(\theta_1+\theta_2)\end{bmatrix}$$
         <h1>The controller:</h1>
-        Let a controller be designed so that a user may select a point within the reach of the arm \((x,y)\) relative to the arm's base for the tip of the arm to reach.</br>
+        Let a controller be designed so that a user may select a point within the reach of the arm \((x_t,y_t)\) relative to the arm's base for the tip of the arm to reach.</br>
         One example of such a controller is the Jacobian Transpose Controller. This utilizes the Jacobian of the system to convert back and forth between task space (Cartesian coordinates) and system space (\(\mathbf{q}\)). Given that \(\mathbf{x}=f(\mathbf{q})\), we can find \(\dot{\mathbf{x}}=J\dot{\mathbf{q}}\), where J is the Jacobian of f, by the chain rule.</br>
         $$J=\begin{bmatrix}-l_1\sin(\theta_1)-l_2\sin(\theta_1+\theta_2) & -l_2\sin(\theta_1+\theta_2) \\ l_1\cos(\theta_1)+l_2\cos(\theta_1+\theta_2) & l_2\cos(\theta_1+\theta_2)\end{bmatrix}$$
         By defining a virtual force \(F=K_pe-K_d\dot{x}\) generated with a PD controller in task space, we can convert to an applied torque with \(\tau=J^TF\). However, this produces a steady-state error due to gravity, which can be fixed by modifying the torque equation with gravity compensation. The final torque is then \(\tau=J^TF+G(q)\).</br>
-        Click or drag to change the target for the arm!</br>
+        Alternatively, we could find an ideal position \((\theta_1^*,\theta_2^*)\) and use a regular PID controller to target this state directly. Observe that the distance of the end point of the arm from the center is, by the Law of Cosines, equal to \(r^2=x_t^2+y_t^2=l_1^2+l_2^2-2l_1l_2\cos(\pi-\theta_2^*)\). Thus, \(\theta_2^*=\pi\pm\cos^{-1}\left(\frac{x_t^2+y_t^2-l_1^2-l_2^2}{2l_1l_2}\right)\). This guarantees that the end of the arm will be the correct distance from the center.</br>
+        The angle from the x-axis to the line segment going through both the origin and the target point \((x_t,y_t)\) is equal to \(\theta_1^*+\phi\), where \(\phi\) is the angle between the first segment of the arm and the line segment going from the origin to the target. Using the definition of the tangent, we find \(\tan(\phi)=\frac{l_2\sin(\theta_2^*)}{l_1+l_2\cos(\theta_2^*)}\), which yields that \(\phi=\tan_2^{-1}(l_2\sin(\theta_2^*),l_1+l_2\cos(\theta_2^*))\), where \(\tan_2^{-1}(y,x)\) is the two-argument arctangent of a point \((x,y)\). Finally, note that \(\theta_1^*+\phi=\tan_2^{-1}(y_t,x_t)\), so \(\theta_1^*=\tan_2^{-1}(y_t,x_t)-\tan_2^{-1}(l_2\sin(\theta_2^*),l_1+l_2\cos(\theta_2^*))\).</br>
+        Then, the controller can be implemented as \(\begin{bmatrix}\tau_1 \\ \tau_2\end{bmatrix}=P\begin{bmatrix}\theta_1^*-\theta_1 \\ \theta_2^*-\theta_2\end{bmatrix}-D\begin{bmatrix}\frac{d\theta_1}{dt} \\ \frac{d\theta_2}{dt}\end{bmatrix}+I\begin{bmatrix}\int_0^t (\theta_1^*-\theta_1)\,dt \\ \int_0^t (\theta_2^*-\theta_2)\,dt\end{bmatrix}\).</br>
+        Note that we have two possible solutions: one in which \(\theta_2\gt\pi\), and one in which \(\theta_2\lt\pi\). We should choose the one which is "closer". Also note, however, that the angle is not continuous. If the arm's current position has it at 350&deg; and one solution is at 10&deg; while the other is at 190&deg;, the controller should choose the one at 10&deg;. This also means that as the arm moves from 0&deg; to -0.001&deg; (for example), if the target was previously -10&deg;, it should be increased by 360&deg; to follow the arm's angles as they stay bounded by [0&deg;,360&deg;).
+        <h1>The simulation:</h1>
+        Click or drag to change the target for the arm! You can also change the control scheme down below!</br>
+        <select id="controlMethod">
+            <option value="0">Jacobian Transpose</option>
+            <option value="1" selected>PID</option>
+        </select>
+        <button id="TorqueCap">Enable torque cap</button>
+        </br></br></br>
         <canvas id="canvas"></canvas>
         <script src="processing.js"></script>
         <script src="math.js"></script>
@@ -95,6 +106,10 @@
             let scale=p.width/maxReach*0.45;
             let mu=0;
             let esum=0;
+            let esum2=[0,0];
+            let controlScheme=1;
+            let torqueCapped=false;
+            let torqueCap=25;
 
             let MVar;
             let M;
@@ -153,6 +168,16 @@
                 omega2+=alpha2*TimeStep;
                 theta1+=omega1*TimeStep;
                 theta2+=omega2*TimeStep;
+                if (theta1>=2*math.PI) {
+                    theta1=theta1-2*math.PI;
+                } else if (theta1<0) {
+                    theta1=theta1+2*math.PI;
+                }
+                if (theta2>=2*math.PI) {
+                    theta2=theta2-2*math.PI;
+                } else if (theta2<0) {
+                    theta2=theta2+2*math.PI;
+                }
             };
 
             const GetTau=function(Method) {
@@ -169,10 +194,41 @@
                     let xdot=math.multiply(J,qdot);
                     esum=math.add(esum,e);
                     let Kp=200;
-                    let Kd=50;
+                    let Kd=100;
                     let Ki=0;
                     let F=math.add(math.subtract(math.multiply(Kp,e),math.multiply(Kd,xdot)),math.multiply(Ki,esum));
                     Tau=math.add(math.multiply(math.transpose(J),F),G);
+                }
+                if (Method===1) {
+                    let theta2Star=p.acos((p.sq(TargetX)+p.sq(TargetY)-p.sq(l1)-p.sq(l2))/(2*l1*l2));
+                    theta2Star=[-theta2Star,theta2Star];
+                    let theta1Star=[math.atan2(TargetY,TargetX)-math.atan2(l2*math.sin(theta2Star[0]),l1+l2*math.cos(theta2Star[0])),math.atan2(TargetY,TargetX)-math.atan2(l2*math.sin(theta2Star[1]),l1+l2*math.cos(theta2Star[1]))];
+                    let distance=math.matrix([[0],[0]]);
+                    for (let i=0; i<2; i++) {
+                        while (math.abs(theta2Star[i]-theta2)>math.PI) {
+                            theta2Star[i]+=2*math.PI*math.sign(theta2-theta2Star[i]);
+                        }
+                        while (math.abs(theta1Star[i]-theta1)>math.PI) {
+                            theta1Star[i]+=2*math.PI*math.sign(theta1-theta1Star[i]);
+                        }
+                        distance.set([i,0],math.abs(theta1Star[i]-theta1)+math.abs(theta2Star[i]-theta2));
+                    }
+                    if (distance.get([0,0])<distance.get([1,0])) {
+                        theta1Star=theta1Star[0];
+                        theta2Star=theta2Star[0];
+                    } else {
+                        theta1Star=theta1Star[1];
+                        theta2Star=theta2Star[1];
+                    }
+                    esum2[0]+=(theta1Star-theta1)*TimeStep;
+                    esum2[1]+=(theta2Star-theta2)*TimeStep;
+                    //p.println("Going for ("+theta1Star+", "+theta2Star+"). Currently at ("+theta1+", "+theta2+").");
+                    let P=200;
+                    let D=50;
+                    let I=100;
+                    Tau.set([0,0],P*(theta1Star-theta1)-D*omega1+I*esum2[0]);
+                    Tau.set([1,0],P*(theta2Star-theta2)-D*omega2+I*esum2[1]);
+                    
                 }
                 return Tau;
             };
@@ -217,12 +273,33 @@
                 p.ellipse(TargetX*scale,-TargetY*scale,10,10);
                 p.popMatrix();
                 for (let i=0; i<1/(60*TimeStep); i++) {
-                    TauVec=GetTau();
+                    TauVec=GetTau(controlScheme);
+                    if (torqueCapped) {
+                        for (let i=0; i<2; i++) {
+                            if (math.abs(TauVec.get([i,0]))>torqueCap) {
+                                TauVec.set([i,0],torqueCap*math.sign(TauVec.get([i,0])));
+                            }
+                        }
+                    }
                     UpdateArm(TauVec);
                 }
                 p.fill(0,0,0);
                 p.text("Torque 1 = "+reduce(math.subset(TauVec,math.index(0,0)))+" N*m\nTorque 2 = "+reduce(math.subset(TauVec,math.index(1,0)))+" N*m",p.width/64,p.height/64);
             };
+
+            let methodSelector=document.getElementById("controlMethod");
+            methodSelector.onchange=function() {
+                controlScheme=Number(methodSelector.value);
+            }
+            let tcButton=document.getElementById("TorqueCap");
+            tcButton.onclick=function() {
+                if (torqueCapped) {
+                    tcButton.innerHTML="Enable torque cap";
+                } else {
+                    tcButton.innerHTML="Disable torque cap";
+                }
+                torqueCapped=!torqueCapped;
+            }
         };
 
         // Get the canvas that ProcessingJS will use
