@@ -7,11 +7,6 @@ body {
 h1 {
     color: aqua;
 }
-canvas {
-    max-width: 100%;
-    margin: 25px auto;
-    display: block;
-}
 th {
     border: 2px solid white;
     padding: 10px;
@@ -27,4 +22,12 @@ table {
     overflow-x: auto;
     overflow-y: hidden;
     max-width: 100%;
+}
+.sliderContainer {
+    width: 800px;
+    max-width: 100%;
+}
+.sliderLabel {
+    display: block;
+    text-align: center;
 }
