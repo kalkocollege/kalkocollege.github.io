@@ -9,6 +9,20 @@
     <body>
         <a href="index.html">Back</a></br>
         <h1>The simulation:</h1>
+        Click or drag to change the target for the arm! You can also change the control scheme down below!</br>
+        <select id="controlMethod">
+            <option value="0" selected>Jacobian Transpose</option>
+            <option value="1">PID</option>
+        </select>
+        <button id="TorqueCap">Enable torque cap</button></br>
+        <div class="sliderContainer" id="torqueCapDiv" style="display: none;">
+            <label for="Torque Cap" class="sliderLabel" id="tcText">Torque Cap</label>
+            <input type="range" id="torquecap" min="20" max="50" value="25" step="0.5" name="Torque Cap" style="width: 800px; max-width:100%;">
+        </div>
+        </br></br></br>
+        <canvas id="canvas"></canvas>
+        
+        <h1>The physics:</h1>
         Let a 2D two-segment robotic arm be defined by the state vector \(\mathbf{q}=\begin{bmatrix}\theta_1\\ \theta_2\end{bmatrix}\), where \(\theta_1\) is defined relative to the horizontal axis and \(\theta_2\) is the angle between the segments. Furthermore, let segment \(i\) of the arm have a length \(l_i\), a mass \(m_i\), and a moment of inertia \(I_i\). Then the position vector of the end of the arm is \(\mathbf{x}=\begin{bmatrix}l_1\cos(\theta_1)+l_2\cos(\theta_1+\theta_2)\\ l_1\sin(\theta_1)+l_2\sin(\theta_1+\theta_2)\end{bmatrix}\).</br>
         Let there be two inputs present, \(\tau_1\) and \(\tau_2\), applied to the first and second joint of the structure, respectively.</br>
         In order to derive the equations of motion for this system, we need to express the kinetic and potential energy in terms of the state vector \(\mathbf{q}\) and its derivative, \(\mathbf{\dot{q}}\).</br>
@@ -58,6 +72,8 @@
         $$M(q)=\begin{bmatrix}I_1+I_2+\frac{m_1l_1^2}{4}+m_2l_1^2+\frac{m_2l_2^2}{4}+m_2l_1l_2\cos(\theta_2) & I_2+\frac{m_2l_2^2}{4}+\frac{m_2l_1l_2}{2}\cos(\theta_2) \\ I_2+\frac{m_2l_2^2}{4}+\frac{m_2l_1l_2}{2}\cos(\theta_2) & I_2+\frac{m_2l_2^2}{4}\end{bmatrix}$$
         $$C(q,\dot{q})=\begin{bmatrix}-\frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_2 & -\frac{m_2l_1l_2}{2}\sin(\theta_2)(\dot{\theta}_1+\dot{\theta}_2) \\ \frac{m_2l_1l_2}{2}\sin(\theta_2)\dot{\theta}_1 & 0\end{bmatrix}$$
         $$G(q)=\begin{bmatrix}\frac{m_1gl_1}{2}\cos(\theta_1)+m_2gl_1\cos(\theta_1)+\frac{m_2gl_2}{2}\cos(\theta_1+\theta_2) \\ \frac{m_2gl_2}{2}\cos(\theta_1+\theta_2)\end{bmatrix}$$
+        To simulate the two-segment arm, we need to isolate \(\ddot{q}\). Start by rewriting the dynamics equation as \(M(q)\ddot{q}=\tau-C(q,\dot{q})\dot{q}-G(q)\), then use a stable solver to find \(\ddot{q}\).</br>
+        With the acceleration found, a linear approximation is taken, so that \(\omega_{t+1}=\omega_t+\ddot{q}\Delta t\) and \(\theta_{t+1}=\theta_t+\omega_t\Delta t\)
         <h1>The controller:</h1>
         Let a controller be designed so that a user may select a point within the reach of the arm \((x_t,y_t)\) relative to the arm's base for the tip of the arm to reach.</br>
         One example of such a controller is the Jacobian Transpose Controller. This utilizes the Jacobian of the system to convert back and forth between task space (Cartesian coordinates) and system space (\(\mathbf{q}\)). Given that \(\mathbf{x}=f(\mathbf{q})\), we can find \(\dot{\mathbf{x}}=J\dot{\mathbf{q}}\), where J is the Jacobian of f, by the chain rule.</br>
@@ -67,15 +83,6 @@
         The angle from the x-axis to the line segment going through both the origin and the target point \((x_t,y_t)\) is equal to \(\theta_1^*+\phi\), where \(\phi\) is the angle between the first segment of the arm and the line segment going from the origin to the target. Using the definition of the tangent, we find \(\tan(\phi)=\frac{l_2\sin(\theta_2^*)}{l_1+l_2\cos(\theta_2^*)}\), which yields that \(\phi=\tan_2^{-1}(l_2\sin(\theta_2^*),l_1+l_2\cos(\theta_2^*))\), where \(\tan_2^{-1}(y,x)\) is the two-argument arctangent of a point \((x,y)\). Finally, note that \(\theta_1^*+\phi=\tan_2^{-1}(y_t,x_t)\), so \(\theta_1^*=\tan_2^{-1}(y_t,x_t)-\tan_2^{-1}(l_2\sin(\theta_2^*),l_1+l_2\cos(\theta_2^*))\).</br>
         Then, the controller can be implemented as \(\begin{bmatrix}\tau_1 \\ \tau_2\end{bmatrix}=P\begin{bmatrix}\theta_1^*-\theta_1 \\ \theta_2^*-\theta_2\end{bmatrix}-D\begin{bmatrix}\frac{d\theta_1}{dt} \\ \frac{d\theta_2}{dt}\end{bmatrix}+I\begin{bmatrix}\int_0^t (\theta_1^*-\theta_1)\,dt \\ \int_0^t (\theta_2^*-\theta_2)\,dt\end{bmatrix}\).</br>
         Note that we have two possible solutions: one in which \(\theta_2\gt\pi\), and one in which \(\theta_2\lt\pi\). We should choose the one which is "closer". Also note, however, that the angle is not continuous. If the arm's current position has it at 350&deg; and one solution is at 10&deg; while the other is at 190&deg;, the controller should choose the one at 10&deg;. This also means that as the arm moves from 0&deg; to -0.001&deg; (for example), if the target was previously -10&deg;, it should be increased by 360&deg; to follow the arm's angles as they stay bounded by [0&deg;,360&deg;).
-        <h1>The simulation:</h1>
-        Click or drag to change the target for the arm! You can also change the control scheme down below!</br>
-        <select id="controlMethod">
-            <option value="0">Jacobian Transpose</option>
-            <option value="1" selected>PID</option>
-        </select>
-        <button id="TorqueCap">Enable torque cap</button>
-        </br></br></br>
-        <canvas id="canvas"></canvas>
         <script src="processing.js"></script>
         <script src="math.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -164,10 +171,10 @@
                 //p.println(T+V);
                 alpha1=math.subset(A,math.index(0,0));
                 alpha2=math.subset(A,math.index(1,0));
-                omega1+=alpha1*TimeStep;
-                omega2+=alpha2*TimeStep;
                 theta1+=omega1*TimeStep;
                 theta2+=omega2*TimeStep;
+                omega1+=alpha1*TimeStep;
+                omega2+=alpha2*TimeStep;
                 if (theta1>=2*math.PI) {
                     theta1=theta1-2*math.PI;
                 } else if (theta1<0) {
@@ -287,7 +294,10 @@
                 p.text("Torque 1 = "+reduce(math.subset(TauVec,math.index(0,0)))+" N*m\nTorque 2 = "+reduce(math.subset(TauVec,math.index(1,0)))+" N*m",p.width/64,p.height/64);
             };
 
+            let tcDiv=document.getElementById("torqueCapDiv");
+
             let methodSelector=document.getElementById("controlMethod");
+            controlScheme=Number(methodSelector.value);
             methodSelector.onchange=function() {
                 controlScheme=Number(methodSelector.value);
             }
@@ -295,11 +305,17 @@
             tcButton.onclick=function() {
                 if (torqueCapped) {
                     tcButton.innerHTML="Enable torque cap";
+                    tcDiv.style.display="none";
                 } else {
                     tcButton.innerHTML="Disable torque cap";
+                    tcDiv.style.display="block";
                 }
                 torqueCapped=!torqueCapped;
             }
+            let tcSlider=document.getElementById("torquecap");
+            tcSlider.onchange=function() {
+                torqueCap=tcSlider.value;
+            };
         };
 
         // Get the canvas that ProcessingJS will use
