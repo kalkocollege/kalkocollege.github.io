@@ -8,7 +8,9 @@
     </head>
     <body>
         <a href="index.html">Back</a></br></br>
-        <h1>Currently displaying <span id="mode">walled</span> mode.</h1>
+        <h1></h1>
+        <h1>Currently displaying <span id="type">Origin Shift</span> in <span id="mode">walled</span> mode.</h1>
+        Click to toggle between graph mode and walled mode.</br>
         <canvas id="mycanvas"></canvas></br>
         <div class="sliderContainer">
             <label for="Maze Width" class="sliderLabel" id="mwText">Maze Width</label>
@@ -22,23 +24,55 @@
         <button id="step">Step</button></br>
         <button id="refresh">Refresh</button>
         <select id="mazeType">
-            <option value="0">Origin Shift</option>
+            <option value="0" selected>Origin Shift</option>
             <option value="1">Recursive Backtracking</option>
             <option value="2">Prim's Algorithm</option>
-            <option value="3" selected>Recursive Division</option>
+            <option value="3">Recursive Division</option>
+            <option value="4">Aldous-Broder Algorithm</option>
+            <option value="5">Wilson's Algorithm</option>
+            <option value="6">Binary Tree</option>
+            <option value="7">Kruskal's Algorithm</option>
+            <option value="8">Eller's Algorithm</option>
         </select>
-        </br></br></br></br></br></br></br></br></br></br></br></br></br>
+        </br></br>
+        <div id="blurb"></div>
+        <div id="glossary">
+            <h1>Glossary:</h1>
+            <b>Cell:</b> The smallest discrete unit of a maze. Here, it is displayed as either a dot (in graph mode) or a box (in walled mode). No walls are ever inside of an individual cell.</br>
+            <b>Connection:</b> A passageway between adjacent cells. Here, it is displayed as either a line between two dots (in graph mode) or an opening (in walled mode).</br>
+            <b>Perfect Maze:</b> A maze where there is exactly one route from any cell to any other cell in the maze, no matter which two cells are chosen. In plain speak, this means the maze is fully connected and has no loops.</br>
+            <b>Update step:</b> A discrete unit of time during which a change is made to the maze.</br>
+            <b>Neighbor:</b> A cell which is directly adjacent in either the horizontal or vertical direction to the cell under consideration.</br>
+            <b>Box (in the context of Recursive Division):</b> A set of cells in a rectangular pattern with no walls dividing them from each other.</br>
+            <b>Random walk:</b> A random walk steps to one of its neighbors at random on each update step.</br>
+            <b>Uniform spanning tree:</b> A maze created such that, of all possible perfect mazes, each had an equally likely chance of being the result.</br>
+        </div>
+        </br></br></br></br></br></br></br></br></br></br></br>
         <script src="processing.js"></script>
         <script src="math.js"></script>
         <script>
         let modeText=document.getElementById("mode");
+        let typeText=document.getElementById("type");
+        let blurbText=document.getElementById("blurb");
         let programCode = function(p) {
-            p.size(800, 800);
+            p.size(600, 600);
             p.strokeCap(p.SQUARE);
 
 let mazeWidth=15;
 let mazeHeight=10;
 let running=false;
+
+const blurbs=[
+    "<h1>Origin Shift:</h1>The origin shift algorithm is unique in a couple of ways. First, the maze begins as a perfect maze (albeit a very simple one, often composed of straight lines connecting the entire graph). Second, the maze is directed. Every connection points towards the path leading to the origin of the maze, which can be seen by switching to graph mode. During the update step, the origin is moved to one of its neighbors at random. A new connection is added pointing from the previous orign to the new origin, and the outgoing connection from the new origin is removed. Unlike other algorithms, Origin Shift has no predefined stopping-point, and remains a valid perfect maze at every step of its generation.",
+    "<h1>Recursive Backtracking:</h1>The recursive backtracking algorithm starts by selecting a random cell as the start of its path. From there, it chooses unvisited neighbors at random, adding them to the path, until it reaches a cell with no unvisited neighbors. At this point, the algorithm travels back along the path until it finds a cell with unvisited neighbors again. This repeats until the algorithm reaches all the way back to the start of its path, when there are no unvisited neighbors left anywhere in the maze.",
+    "<h1>Prim's Algoirthm:</h1>Prim's algorithm starts by slecting a random cell as in the maze, and adding its possible connections to the frontier. At every update step, Prim's Algorithm chooses one of these frontier connections at random, and connects the two cells it attaches too, marking the new cell as in the maze and adding any valid connections it has to the frontier, while removing any connections between two cells in the maze from the frontier, until the whole graph is connected.",
+    "<h1>Recursive Division:</h1>Recursive Division starts with an open maze, where each cell is connected to all of its neighbors. Then, a random valid box is chosen, and a random line is added somewhere inside this box, dividing it into two, with one opening somewhere along the line. This is repeated until there all boxes have either width or height of one. In my particular implementation, I weighted the chance of adding a vertical or horizontal line according to how large the box is in each dimension, to reduce occurences of multiple long, parallel corridors.",
+    "<h1>Aldous-Broder Algorithm:</h1>The Aldous-Broder algorithm utilizes a random walk to generate a uniform spanning tree. The Aldous-Broder algorithm tracks where the random walk is, as well as what cells are already in the maze. On each update step, the algorithm takes a step in a random valid direction. If the new cell is not already in the maze, the wall that was just traversed is removed, otherwise nothing happens. For larger mazes, the Aldous-Broder algorithm can have a long stopping time, because the random walk is inefficient in visiting every cell in the maze.",
+    "<h1>Wilson's Algorithm:</h1>Wilson's algorithm utilizes a random walk to generate a uniform spanning tree. To start, a cell is chosen as in the maze, and another cell is chosen as the root of a path. Interestingly, it doesn't matter how these two cells are chosen; the resulting maze will still be a uniform spanning tree. From the root, a loop-erased random walk is performed, meaning that if the path ever intersects with itself, everything past the intersection point is erased. Once the path hits a cell in the maze, the path is created by making connections between cells on the path, and all the cells traversed by the random walk are now considered in the maze for future walks.",
+    "<h1>Binary tree:</h1>The binary tree algorithm is one of the simplest maze generation algorithms. Each cell not on the top or left borders randomly chooses to open a passageway to its upper or left neighbor with equal chance. Cells located on the top border of the maze always open a passageway to the left, while cells on the left border always open a passageway up. The upper left corner opens no passageways. This algorithm's strength is that no cell needs to have any knowledge about the rest of the maze; any set of valid choices will result in a perfect maze.",
+    "<h1>Kruskal's Algorithm:</h1>Kruskal's Algorithm starts by dividing the maze into sets, each cell getting its own set at first. The update step involves picking a random edge, then, if the cells on either side of the edge aren't part of the same set, it connects them with a passage and merges their sets. This repeats until there are no edges left to check.",
+    "<h1>Eller's Algorithm:</h1>Eller's Algorithm operates on a one-row-at-a-time basis, by tracking sets for each cell again. Initially, all cells in the first row are given their own sets, then passages are opened between adjacent cells at random and their sets are merged. After the whole row has been considered, passages are opened to the cells below, with at least one passage per set, and the newly-adjoined cells are merged with the above sets. From here, the process repeats until the last row, with the caveat that a passage is only formed if its endpoints belong to different sets. The last row then merges all remaining disjoint sets into one set by adding necessary passages, and forgoes attempting to create vertical passages."
+]; // Descriptions of each maze type.
 
 const TextArray=function(array) {
     let output="[";
@@ -56,7 +90,24 @@ const TextArray=function(array) {
     return(output);
 }
 
-//0=Origin Shift, 1=Recursive Backtracking
+const getRoot=function(Ob) {
+    if (Ob.root!==undefined) {
+        if (Ob.root===Ob) {
+            return(Ob);
+        } else {
+            return(getRoot(Ob.root));
+        }
+    } else {
+        p.println("Error: Object does not have a root!");
+        return(null);
+    }
+};
+
+let dummyObj=function() {
+
+};
+
+//0=Origin Shift, 1=Recursive Backtracking, 2=Prim's Algorithm, 3=Recursive Division, 4=Aldous-Broder, 5=Wilson's, 6=Binary Tree, 7=Kruskal's Algorithm, 8=Eller's Algorithm
 const findInArray=function(Desired,Array) {
     let index=-1
     for (let i=0; i<Array.length; i++) {
@@ -79,6 +130,10 @@ const connection=function(node1,node2) {
     this.node1.c.push(this);
     this.node2.c.push(this);
 };
+const edge=function(node1,node2) {
+    this.node1=node1;
+    this.node2=node2;
+}
 
 const maze=function(sizeX,sizeY) {
     //A maze is a set of nodes and connections between adjacent nodes. The maze object creates the set of node objects according to the dimensions entered, and initializes an empty set of connections.
@@ -164,9 +219,24 @@ maze.prototype.drawMaze=function() {
         }
     }
 };
+maze.prototype.highlight=function(node,color=[0,255,0]) {
+    if (this.displayWalls) {
+        p.noStroke();
+        p.fill(color[0],color[1],color[2]);
+        let left=p.round(node.x*this.xInc+5);
+        let right=p.round((node.x+1)*this.xInc-5);
+        let top=p.round(node.y*this.yInc+5);
+        let bottom=p.round((node.y+1)*this.yInc-5);
+        p.rect(left,top,right-left,bottom-top);
+    } else {
+        p.noStroke();
+        p.fill(color[0],color[1],color[2],127);
+        p.ellipse((node.x+1/2)*this.xInc,(node.y+1/2)*this.yInc,p.min(this.xInc,this.yInc),p.min(this.xInc,this.yInc))
+    }
+};
 
 //Origin Shift Method:
-const originShift=function(sizeX,sizeY) {
+const OS=function(sizeX,sizeY) {
     maze.call(this, sizeX, sizeY);
     this.type=0;
     this.o=this.n[0];
@@ -179,8 +249,8 @@ const originShift=function(sizeX,sizeY) {
         }
     }
 };
-originShift.prototype=Object.create(maze.prototype);
-originShift.prototype.updateStep=function() {
+OS.prototype=Object.create(maze.prototype);
+OS.prototype.updateStep=function() {
     let nexto=this.o.adj[p.floor(p.random()*this.o.adj.length)];
     this.c.push(new connection(this.o,nexto));
     for (let i=0; i<nexto.c.length; i++) {
@@ -190,7 +260,7 @@ originShift.prototype.updateStep=function() {
     }
     this.o=nexto;
 };
-originShift.prototype.drawMaze=function() {
+OS.prototype.drawMaze=function() {
     maze.prototype.drawMaze.call(this);
     if (!this.displayWalls) {
         p.stroke(0,0,0);
@@ -203,10 +273,8 @@ originShift.prototype.drawMaze=function() {
             p.line(x1,y1,((x2-x1)*p.sqrt(3)/2-(y2-y1)*0.5)/3+x1,((x2-x1)*0.5+(y2-y1)*p.sqrt(3)/2)/3+y1);
             p.line(x1,y1,((x2-x1)*p.sqrt(3)/2+(y2-y1)*0.5)/3+x1,(-(x2-x1)*0.5+(y2-y1)*p.sqrt(3)/2)/3+y1);
         }
-        p.fill(0,255,0,127);
-        p.noStroke();
-        p.ellipse((this.o.x+1/2)*this.xInc,(this.o.y+1/2)*this.yInc,50,50);
     }
+    this.highlight(this.o);
 }
 
 //Recursive Backtracking Method
@@ -240,11 +308,7 @@ RB.prototype.drawMaze=function() {
         p.noStroke();
         p.fill(0,255,0);
         for (let i=0; i<this.stack.length; i++) {
-            let left=p.round(this.stack[i].x*this.xInc+5);
-            let right=p.round((this.stack[i].x+1)*this.xInc-5);
-            let top=p.round(this.stack[i].y*this.yInc+5);
-            let bottom=p.round((this.stack[i].y+1)*this.yInc-5);
-            p.rect(left,top,right-left,bottom-top);
+            this.highlight(this.stack[i]);
         }
     }
 }
@@ -326,11 +390,11 @@ PA.prototype.updateStep=function() {
         }
         //p.println(temp+"=("+this.frontier[temp].node1.x+", "+this.frontier[temp].node1.y+") to ("+this.frontier[temp].node2.x+", "+this.frontier[temp].node2.y+")");
         this.frontier.splice(temp,1);
-        for (let i=0; i<this.frontier.length; i++) {
-            if (this.frontier[i].node1.inMaze&&this.frontier[i].node2.inMaze) {
-                p.println("("+this.frontier[i].node1.x+", "+this.frontier[i].node1.y+") to ("+this.frontier[i].node2.x+", "+this.frontier[i].node2.y+") was not removed when it should have been.");
-            }
-        }
+        //for (let i=0; i<this.frontier.length; i++) {
+        //    if (this.frontier[i].node1.inMaze&&this.frontier[i].node2.inMaze) {
+        //        p.println("("+this.frontier[i].node1.x+", "+this.frontier[i].node1.y+") to ("+this.frontier[i].node2.x+", "+this.frontier[i].node2.y+") was not removed when it should have been.");
+        //    }
+        //}
     }
 }
 PA.prototype.drawMaze=function() {
@@ -397,7 +461,10 @@ RD.prototype.updateStep=function() {
     }
     if (candidates.length>0) {
         let temp=p.floor(p.random()*candidates.length);
-        let temp2=p.random()>0.5;
+        let xWeight=candidates[temp][2]-candidates[temp][0];
+        let yWeight=candidates[temp][3]-candidates[temp][1];
+        let chance=yWeight/(xWeight+yWeight);
+        let temp2=p.random()>chance;
         if (temp2) {
             temp2=p.floor(p.random()*(candidates[temp][2]-candidates[temp][0]-1)+candidates[temp][0]);
             for (let i=candidates[temp][1]; i<=candidates[temp][3]; i++) {
@@ -422,8 +489,312 @@ RD.prototype.updateStep=function() {
     }
 };
 
+//Aldous-Broder Algorithm
+const AB=function(sizeX,sizeY) {
+    maze.call(this,sizeX,sizeY);
+    this.type=4;
+    this.unvisited=sizeX*sizeY-1;
+    this.current=this.n[math.floor(math.random()*this.n.length)];
+};
+AB.prototype=Object.create(maze.prototype);
+AB.prototype.updateStep=function() {
+    if (this.unvisited>0) {
+        let next=this.current.adj[math.floor(math.random()*this.current.adj.length)];
+        if (next.c.length===0) {
+            this.unvisited--;
+            this.c.push(new connection(this.current, next));
+        }
+        this.current=next;
+    }
+};
+AB.prototype.drawMaze=function() {
+    maze.prototype.drawMaze.call(this);
+    this.highlight(this.current);
+};
 
-p.Maze=new RD(mazeWidth,mazeHeight);
+const WA=function(sizeX,sizeY) {
+    maze.call(this,sizeX,sizeY);
+    this.type=5;
+    for (let i=0; i<this.n.length; i++) {
+        this.n[i].inMaze=false;
+    }
+    this.n[p.floor(p.random()*this.n.length)].inMaze=true;
+    //this.n[0].inMaze=true;
+    this.stack=[this.getCandidate()];
+    this.done=false;
+};
+WA.prototype=Object.create(maze.prototype);
+WA.prototype.getCandidate=function() {
+    this.candidates=[];
+    for (let i=0; i<this.n.length; i++) {
+        if (!this.n[i].inMaze) {
+            this.candidates.push(this.n[i])
+        }
+    }
+    if (this.candidates.length>0) {
+        return(this.candidates[p.floor(p.random()*this.candidates.length)]);
+        //return(this.candidates[0]);
+    } else {
+        this.done=true;
+        return(this.n[0]);
+    }
+};
+WA.prototype.updateStep=function() {
+    if (!this.done) {
+        if (this.stack.length===0) {
+            this.stack.push(this.getCandidate());
+        } else {
+            let current=this.stack[this.stack.length-1];
+            let next=current.adj[p.floor(p.random()*current.adj.length)];
+            if (next.inMaze) {
+                this.stack.push(next);
+                while (this.stack.length>1) {
+                    this.c.push(new connection(this.stack[0],this.stack[1]));
+                    this.stack[0].inMaze=true;
+                    this.stack.splice(0,1);
+                }
+                this.stack=[];
+            } else {
+                let temp=findInArray(next,this.stack);
+                if (temp>=0) {
+                    this.stack.splice(temp,this.stack.length-temp);
+                }
+                this.stack.push(next);
+            }
+        }
+    } else {
+        this.stack=[];
+    }
+};
+WA.prototype.drawMaze=function() {
+    maze.prototype.drawMaze.call(this);
+    for (let i=0; i<this.candidates.length; i++) {
+        this.highlight(this.candidates[i],[255,255,0]);
+    }
+    for (let i=0; i<this.stack.length; i++) {
+        this.highlight(this.stack[i]);
+    }
+};
+
+const BT=function(sizeX,sizeY) {
+    maze.call(this,sizeX,sizeY);
+    this.type=6;
+    this.current=0;
+}
+BT.prototype=Object.create(maze.prototype);
+BT.prototype.updateStep=function() {
+    if (this.current<this.n.length) {
+        if (this.n[this.current].x>0&&this.n[this.current].y>0) {
+            if (p.random()>0.5) {
+                this.c.push(new connection(this.n[this.current],this.getNodeByLocation(this.n[this.current].x-1,this.n[this.current].y)));
+            } else {
+                this.c.push(new connection(this.n[this.current],this.getNodeByLocation(this.n[this.current].x,this.n[this.current].y-1)));
+            }
+        } else if (this.n[this.current].x>0) {
+            this.c.push(new connection(this.n[this.current],this.getNodeByLocation(this.n[this.current].x-1,this.n[this.current].y)));
+        } else if (this.n[this.current].y>0) {
+            this.c.push(new connection(this.n[this.current],this.getNodeByLocation(this.n[this.current].x,this.n[this.current].y-1)));
+        }
+        this.current++;
+    }
+};
+
+const KA=function(sizeX,sizeY) {
+    maze.call(this,sizeX,sizeY);
+    this.type=7;
+    this.edges=[];
+    for (let i=0; i<this.n.length; i++) {
+        this.n[i].root=this.n[i];
+        if (this.n[i].x>0) {
+            this.edges.push(new edge(this.getNodeByLocation(this.n[i].x-1,this.n[i].y),this.n[i]));
+        }
+        if (this.n[i].y>0) {
+            this.edges.push(new edge(this.getNodeByLocation(this.n[i].x,this.n[i].y-1),this.n[i]));
+        }
+    }
+}
+KA.prototype=Object.create(maze.prototype);
+KA.prototype.updateStep=function() {
+    if (this.edges.length>0) {
+        let choice=p.floor(p.random()*this.edges.length);
+        //p.println("("+this.edges[choice].node1.x+", "+this.edges[choice].node1.y+") to ("+this.edges[choice].node2.x+", "+this.edges[choice].node2.y+")");
+        if (getRoot(this.edges[choice].node1)!==getRoot(this.edges[choice].node2)) {
+            this.c.push(new connection(this.edges[choice].node1,this.edges[choice].node2));
+            let temp=getRoot(this.edges[choice].node2);
+            temp.root=this.edges[choice].node1;
+        }
+        this.mostRecent=this.edges[choice];
+        this.edges.splice(choice,1);
+    } else {
+        this.mostRecent=undefined;
+    }
+}
+KA.prototype.drawMaze=function() {
+    maze.prototype.drawMaze.call(this);
+    if (this.mostRecent) {
+        this.highlight(this.mostRecent.node1);
+        this.highlight(this.mostRecent.node2);
+    }
+}
+
+const EA2=function(sizeX,sizeY) {
+    maze.call(this,sizeX,sizeY);
+    this.type=8;
+    this.numOpen=0;
+    this.expectedOpen=sizeX*sizeY-1;
+    this.total=2*sizeX*sizeY-sizeX-sizeY;
+    this.sets=[];
+    this.row=0;
+    for (let i=0; i<this.sizeX; i++) {
+        this.sets.push([]);
+    }
+    for (let i=0; i<this.n.length; i++) {
+        this.n[i].inMaze=false;
+    }
+    p.println(TextArray(this.sets));
+    p.println("Currently "+this.numOpen+" open out of "+this.total+" walls, when there should be "+this.expectedOpen+"!");
+}
+EA2.prototype=Object.create(maze.prototype);
+EA2.prototype.merge=function(indexA,indexB) {
+    for (let i=0; i<this.sets[indexB].length; i++) {
+        this.sets[indexA].push(this.sets[indexB][i]);
+    }
+    this.sets[indexB]=[];
+};
+EA2.prototype.getOpenSets=function() {
+    this.openIndexes=[];
+    for (let i=0; i<this.sets.length; i++) {
+        if (this.sets[i].length===0) {
+            this.openIndexes.push(i);
+        }
+    }
+}
+EA2.prototype.updateStep=function() {
+    this.count=0;
+    this.getOpenSets();
+    p.println(this.openIndexes);
+    for (let i=0; i<this.sizeX; i++) {
+        let temp=this.getNodeByLocation(i,this.row);
+        if (!temp.inMaze) {
+            this.sets[this.openIndexes[this.count]].push(temp);
+            this.count++;
+            temp.inMaze=true;
+        };
+    }
+    if (this.row!==this.sizeY-1) {
+        for (let i=0; i<this.sizeX-1; i++) {
+            
+        }
+    }
+};
+
+const EA=function(sizeX,sizeY) {
+    maze.call(this,sizeX,sizeY);
+    this.type=8;
+    this.pOpen=(sizeX*sizeY-1)/(2*sizeX*sizeY-sizeX-sizeY);
+    this.setCounter=0;
+    this.row=0;
+    for (let i=0; i<this.n.length; i++) {
+        this.n[i].set=-1;
+    }
+}
+EA.prototype=Object.create(maze.prototype);
+EA.prototype.updateStep=function() {
+    if (this.row<this.sizeY-1) {
+        this.Row=[];
+        this.nextRow=[];
+        for (let i=0; i<this.sizeX; i++) {
+            this.Row.push(this.getNodeByLocation(i,this.row));
+            this.nextRow.push(this.getNodeByLocation(i,this.row+1));
+        }
+        for (let i=0; i<this.Row.length; i++) {
+            
+            if (this.Row[i].set<0) {
+                this.Row[i].set=this.setCounter;
+                this.setCounter++;
+            }
+        }
+        for (let i=0; i<this.Row.length-1; i++) {
+            if (Math.random()<this.pOpen && this.Row[i].set!==this.Row[i+1].set) {
+                for (let j=0; j<this.Row.length; j++) {
+                    if (this.Row[j].set===this.Row[i+1].set && i+1!==j) {
+                        this.Row[j].set=this.Row[i].set;
+                    }
+                }
+                this.Row[i+1].set=this.Row[i].set;
+                this.c.push(new connection(this.Row[i], this.Row[i+1]));
+            }
+        }
+        this.Sets=[];
+        for (let i=0; i<this.Row.length; i++) {
+            this.Sets.push(this.Row[i].set);
+            if (Math.random()<this.pOpen) {
+                this.nextRow[i].set=this.Row[i].set;
+                this.c.push(new connection(this.Row[i], this.nextRow[i]));
+            }
+        }
+        for (let i=0; i<this.Sets.length; i++) {
+            let done=false;
+            for (let j=0; j<this.nextRow.length; j++) {
+                if (this.nextRow[j].set===this.Sets[i]) {
+                    done=true;
+                }
+            }
+            if (!done) {
+                let tCount=0;
+                for (let j=0; j<this.Sets.length; j++) {
+                    if (this.Sets[j]===this.Sets[i]) {
+                        tCount++;
+                    }
+                }
+                let temp=Math.floor(Math.random()*tCount);
+                for (let j=0; j<this.Sets.length; j++) {
+                    if (this.Sets[j]===this.Sets[i]) {
+                        if (temp===0) {
+                            temp=temp-1;
+                            this.nextRow[j].set=this.Sets[j];
+                            this.c.push(new connection(this.Row[j],this.nextRow[j]));
+                        } else {
+                            temp=temp-1;
+                        }
+                    }
+                }
+            }
+        }
+        this.row++;
+    } else if (this.row===this.sizeY-1) {
+        for (let i=0; i<this.sizeX; i++) {
+            let temp=this.getNodeByLocation(i,this.row);
+            if (temp.set<0) {
+                temp.set=this.setCounter;
+                this.setCounter++;
+            }
+        }
+        this.Row=[];
+        for (let i=0; i<this.sizeX-1; i++) {
+            this.Row.push(this.getNodeByLocation(i,this.row));
+        }
+        for (let i=0; i<this.sizeX-1; i++) {
+            let temp=Math.floor(Math.random()*this.Row.length);
+            let temp2=this.getNodeByLocation(this.Row[temp].x+1,this.row);
+            if (this.Row[temp].set!==temp2.set) {
+                for (let j=0; j<this.sizeX; j++) {
+                    let temp3=this.getNodeByLocation(j,this.row);
+                    if (temp3.set===temp2.set && temp3!==temp2) {
+                        temp3.set=this.Row[temp].set;
+                    }
+                }
+                temp2.set=this.Row[temp].set;
+                this.c.push(new connection(this.Row[temp], temp2));
+            }
+            this.Row.splice(temp,1);
+        }
+        this.row++;
+    }
+};
+
+p.Maze=new OS(mazeWidth,mazeHeight);
+blurbText.innerHTML=blurbs[p.Maze.type];
 
 p.mouseClicked=function() {
     p.Maze.displayWalls=!p.Maze.displayWalls;
@@ -458,15 +829,35 @@ const refreshMaze=function() {
     }
     let temp=p.Maze.displayWalls;
     if (p.Maze.type===0) {
-        p.Maze=new originShift(mazeWidth,mazeHeight);
+        p.Maze=new OS(mazeWidth,mazeHeight);
+        typeText.innerHTML="Origin Shift";
     } else if (p.Maze.type===1) {
         p.Maze=new RB(mazeWidth,mazeHeight);
+        typeText.innerHTML="Recursive Backtracking algorithm";
     } else if (p.Maze.type===2) {
         p.Maze=new PA(mazeWidth,mazeHeight);
+        typeText.innerHTML="Prim's algorithm";
     } else if (p.Maze.type===3) {
         p.Maze=new RD(mazeWidth,mazeHeight);
+        typeText.innerHTML="Recursive Division";
+    } else if (p.Maze.type===4) {
+        p.Maze=new AB(mazeWidth,mazeHeight);
+        typeText.innerHTML="Aldous-Broder algorithm";
+    } else if (p.Maze.type===5) {
+        p.Maze=new WA(mazeWidth,mazeHeight);
+        typeText.innerHTML="Wilson's algorithm";
+    } else if (p.Maze.type===6) {
+        p.Maze=new BT(mazeWidth,mazeHeight);
+        typeText.innerHTML="Binary Tree";
+    } else if (p.Maze.type===7) {
+        p.Maze=new KA(mazeWidth,mazeHeight);
+        typeText.innerHTML="Kruskal's Algorithm";
+    } else if (p.Maze.type===8) {
+        p.Maze=new EA(mazeWidth,mazeHeight);
+        typeText.innerHTML="Eller's Algorithm";
     }
     p.Maze.displayWalls=temp;
+    blurbText.innerHTML=blurbs[p.Maze.type];
 }
 
 let typeSelector=document.getElementById("mazeType");
@@ -492,8 +883,10 @@ let widthSlider=document.getElementById("mazewidth");
 MazeWidthLabel.innerHTML="Maze Width: "+widthSlider.value;
 widthSlider.onchange=function() {
     mazeWidth=widthSlider.value;
-    MazeWidthLabel.innerHTML="Maze Width: "+widthSlider.value;
     refreshMaze();
+};
+widthSlider.oninput=function() {
+    MazeWidthLabel.innerHTML="Maze Width: "+widthSlider.value;
 };
 
 let MazeHeightLabel=document.getElementById("mhText");
@@ -501,8 +894,10 @@ let heightSlider=document.getElementById("mazeheight");
 MazeHeightLabel.innerHTML="Maze Height: "+heightSlider.value;
 heightSlider.onchange=function() {
     mazeHeight=heightSlider.value;
-    MazeHeightLabel.innerHTML="Maze Height: "+heightSlider.value;
     refreshMaze();
+};
+heightSlider.oninput=function() {
+    MazeHeightLabel.innerHTML="Maze Height: "+heightSlider.value;
 };
             };
 
@@ -514,7 +909,7 @@ heightSlider.onchange=function() {
         <script>
         window.addEventListener('resize', function() {
             // 1. Get your new desired dimensions
-            var newWidth = math.min(800,window.innerWidth-100,window.innerHeight-100);
+            var newWidth = math.min(600,window.innerWidth-100,window.innerHeight-100);
 
             // 2. Get the Processing instance bound to your canvas ID
             var processingInstance = Processing.getInstanceById('mycanvas');
@@ -528,7 +923,7 @@ heightSlider.onchange=function() {
         });
         window.addEventListener('DOMContentLoaded', function() {
             // 1. Get your new desired dimensions
-            var newWidth = math.min(800,window.innerWidth-100,window.innerHeight-100);
+            var newWidth = math.min(600,window.innerWidth-100,window.innerHeight-100);
 
             // 2. Get the Processing instance bound to your canvas ID
             var processingInstance = Processing.getInstanceById('mycanvas');
