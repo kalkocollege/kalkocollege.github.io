@@ -31,3 +31,55 @@ table {
     display: block;
     text-align: center;
 }
+
+.flex-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.column {
+    flex: 1;
+    padding: 15px;
+}
+
+.thumbnail-link {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  max-width: 500px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+/* Hover effect to make it feel interactive */
+.thumbnail-link:hover {
+  box-shadow: 0 4px 12px rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+/* Styles the thumbnail image */
+.thumbnail-img {
+  width: 300px;
+  height: 300px;
+  object-fit: cover; /* Prevents the image from stretching */
+  border-radius: 6px;
+}
+
+/* Styles the text inside */
+.link-title {
+  margin: 0 0 5px 0;
+  font-size: 1.1rem;
+  color: #0066cc;
+}
+
+.link-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+}

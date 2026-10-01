@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Maze Generation</title>
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <a href="index.html">Back</a></br>
+        <canvas id="mycanvas"></canvas>
+        <script src="https://cdn.jsdelivr.net/processing.js/1.4.8/processing.min.js"></script>
+        <script>
+        var programCode = function(p) {
+            p.size(800, 800);                
+var node=function(x,y) {
+    this.x=x;
+    this.y=y;
+    this.c=[];
+    this.c2=[];
+};
+
+var connection=function(node1,node2) {
+    this.node1=node1;
+    this.node2=node2;
+    this.node1.c.push(this);
+    this.node1.c2.push(this.node2);
+    this.node2.c.push(this);
+    this.node2.c2.push(this.node1);
+};
+
+var maze=function(sizeX,sizeY,algorithm) {
+    this.sizeX=sizeX;
+    this.sizeY=sizeY;
+    this.algorithm=algorithm;
+    this.n=[];
+    this.c=[];
+    this.directional=false;
+    this.done=false;
+    this.displayWalls=true;
+    this.hasOrigin=false;
+    for (var i=0; i<this.sizeY; i++) {
+        for (var j=0; j<this.sizeX; j++) {
+            this.n.push(new node(j,i));
+        }
+    }
+    if (this.algorithm==="Origin Shift") {
+        this.directional=true;
+        this.origin=0;
+        this.hasOrigin=true;
+        for (var i=0; i<this.sizeX-1; i++) {
+            this.c.push(new connection(this.n[i],this.n[i+1]));
+        }
+        for (var i=this.sizeX; i<this.sizeX*this.sizeY; i++) {
+            this.c.push(new connection(this.n[i-sizeX],this.n[i]));
+        }
+        
+    }
+    if (this.algorithm==="Aldous-Broder"||this.algorithm==="Wilson's") {
+        this.hasOrigin=true;
+        this.origin=Math.floor(p.random()*this.n.length);
+    }
+    if (this.algorithm==="Wilson's") {
+        this.stack=[this.n(Math.floor(p.random()*this.n.length))];
+    }
+};
+maze.prototype.updateStep=function() {
+    if (this.algorithm==="Origin Shift") {
+        var prevOrigin;
+        var choices=[];
+        var selectedConnection;
+        var Index;
+        if (this.n[this.origin].x!==0) {
+            choices.push(-1);
+        }
+        if (this.n[this.origin].y!==0) {
+            choices.push(-this.sizeX);
+        }
+        if (this.n[this.origin].x!==this.sizeX-1) {
+            choices.push(1);
+        }
+        if (this.n[this.origin].y!==this.sizeY-1) {
+            choices.push(this.sizeX);
+        }
+        prevOrigin=this.origin;
+        this.origin+=choices[Math.floor(p.random()*choices.length)];
+        for (var j=0; j<this.n[this.origin].c.length; j++) {
+            if (this.n[this.origin].c[j].node2===this.n[this.origin]) {
+                selectedConnection=this.n[this.origin].c[j];
+            }
+        }
+        this.c.push(new connection(this.n[this.origin],this.n[prevOrigin]));
+        
+        Index=selectedConnection.node2.c.indexOf(selectedConnection);
+        selectedConnection.node2.c.splice(Index,1);
+        selectedConnection.node2.c2.splice(Index,1);
+        Index=selectedConnection.node1.c.indexOf(selectedConnection);
+        selectedConnection.node1.c.splice(Index,1);
+        selectedConnection.node1.c2.splice(Index,1);
+        Index=this.c.indexOf(selectedConnection);
+        this.c.splice(Index,1);
+    }
+    if (this.algorithm==="Aldous-Broder") {
+        if (!this.done) {
+            var choices=[];
+            if (this.n[this.origin].x!==0) {
+                choices.push(-1);
+            }
+            if (this.n[this.origin].y!==0) {
+                choices.push(-this.sizeX);
+            }
+            if (this.n[this.origin].x!==this.sizeX-1) {
+                choices.push(1);
+            }
+            if (this.n[this.origin].y!==this.sizeY-1) {
+                choices.push(this.sizeX);
+            }
+            var choice=choices[Math.floor(p.random()*choices.length)];
+            if (this.n[this.origin+choice].c.length===0) {
+                this.c.push(new connection(this.n[this.origin],this.n[this.origin+choice]));
+            }
+            this.origin+=choice;
+            this.done=true;
+            for (var i=0; i<this.n.length; i++) {
+                if (this.n[i].c.length===0) {
+                    this.done=false;
+                }
+            }
+        }
+    }
+    if (this.algorithm==="Wilson's") {
+        if (!this.done) {
+            
+        }
+    }
+};
+maze.prototype.drawMaze=function() {
+    var xInc=p.width/(this.sizeX);
+    var yInc=p.height/(this.sizeY);
+    if (!this.displayWalls) {
+        if (this.hasOrigin) {
+            p.fill(0,255,0);
+            p.noStroke();
+            p.ellipse(this.n[this.origin].x*xInc+xInc/2,this.n[this.origin].y*yInc+yInc/2,xInc/5,yInc/5);
+        }
+        p.fill(0, 0, 0);
+        p.stroke(0,0,0);
+        for (var i=0; i<this.n.length; i++) {
+            p.ellipse(this.n[i].x*xInc+xInc/2,this.n[i].y*yInc+yInc/2,xInc/10,yInc/10);
+        }
+        for (var i=0; i<this.c.length; i++) {
+            var x1=this.c[i].node1.x*xInc+xInc/2;
+            var y1=this.c[i].node1.y*yInc+yInc/2;
+            var x2=this.c[i].node2.x*xInc+xInc/2;
+            var y2=this.c[i].node2.y*yInc+yInc/2;
+            p.line(x1,y1,x2,y2);
+            if (this.directional) {
+                p.line(x1,y1,((x2-x1)*p.sqrt(3)/2-(y2-y1)*0.5)/5+x1,((x2-x1)*0.5+(y2-y1)*p.sqrt(3)/2)/5+y1);
+                p.line(x1,y1,((x2-x1)*p.sqrt(3)/2+(y2-y1)*0.5)/5+x1,(-(x2-x1)*0.5+(y2-y1)*p.sqrt(3)/2)/5+y1);
+            }
+        }
+    } else {
+        if (this.hasOrigin) {
+            p.noStroke();
+            p.fill(0,255,0);
+            p.rect(this.n[this.origin].x*xInc,this.n[this.origin].y*yInc,xInc,yInc);
+        }
+        p.stroke(0,0,0);
+        p.strokeWeight(10);
+        p.line(0,0,p.width,0);
+        p.line(0,0,0,p.height);
+        p.line(p.width,0,p.width,p.height);
+        p.line(0,p.height,p.width,p.height);
+        p.strokeWeight(5);
+        for (var i=0; i<this.sizeY; i++) {
+            for (var j=0; j<this.sizeX; j++) {
+                if (j<this.sizeX-1) {
+                    if (this.n[i*this.sizeX+j].c2.indexOf(this.n[i*this.sizeX+j+1])<0) {
+                        p.line((j+1)*xInc,i*yInc,(j+1)*xInc,(i+1)*yInc);
+                    }
+                }
+                if (i<this.sizeY-1) {
+                    if (this.n[i*this.sizeX+j].c2.indexOf(this.n[(i+1)*this.sizeX+j])<0) {
+                        p.line(j*xInc,(i+1)*yInc,(j+1)*xInc,(i+1)*yInc);
+                    }
+                }
+            }
+        }
+        p.strokeWeight(1);
+    }
+};
+
+var Test=new maze(15,10,"Origin Shift");
+//for (var i=0; i<1000; i++) {
+//    Test.updateStep();
+//}
+
+p.mouseClicked=function() {
+    Test.displayWalls=!Test.displayWalls;
+}
+
+p.draw=function() {
+    p.background(255,255,255);
+    Test.drawMaze();
+    Test.updateStep();
+};
+            };
+
+        // Get the canvas that ProcessingJS will use
+        var canvas = document.getElementById("mycanvas"); 
+        // Pass the function to ProcessingJS constructor
+        var processingInstance = new Processing(canvas, programCode); 
+        </script>
+
+    </body>
+</html>

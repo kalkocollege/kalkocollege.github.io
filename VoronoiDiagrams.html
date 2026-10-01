@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Voronoi Diagrams</title>
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <a href="index.html">Back</a></br></br>
+        <h1>Voronoi Diagrams</h1>
+        Left-click empty space to add a point. Left-click and drag an existing point to move it. Right-click an existing point to delete it.</br>
+        <canvas id="mycanvas"></canvas></br>
+        Voronoi polygons are formed by taking a set of seed points, then dividing the plane into regions such that all points within a region are closer to that region's seed than to any other seed. This implementation makes use of Delaunay Triangulation to obtain the dual of the Voronoi diagram first, then connects the circumcenters of the triangles according to whether they share an edge.</br>
+        <h1>Delaunay Triangulation:</h1>
+        The Delaunay triangulation of a set of points divides the space formed by their convex hull into a set of triangles such that each triangle's circumcircle contains none of the points, except for the three used to generate it on its circumference, and possibly others on the circumference. This implementation makes use of Bowyer's Algorithm:
+        <ol>
+            <li>Draw a large triangle which contains all the points under consideration. In this particular case, since we're interested in the Voronoi diagram, the triangle is drawn large enough so that any point on the screen is closer to any other point on the screen than to any of the vertices on this triangle.</li>
+            <li>For each point in the set, do the following:</li>
+            <ol type="a">
+                <li>For each existing triangle, check if the point is contained within its circumcircle. If it is, remove the triangle.</li>
+                <li>There is now a set of points reachable from the point under consideration without crossing any lines. For each adjacent pair of these points (as viewed from the point under consideration), create a triangle involving those two points and the point under consideration.</li>
+            </ol>
+        </ol>
+        Once all points in the set have been considered, the above algorithm will have produced a Delaunay triangulation of the set of points.
+        <h1>Voronoi Diagram from the Delaunay Triangulation:</h1>
+        Once the Delaunay triangulation is obtained, it is relatively straightforward to obtain the Voronoi diagram. Each triangle's circumcenter is equidistant from the three vertices (seed points) and is at least as close to those three as it is to any of the other seed points, thus making it a vertex of the corresponding Voronoi polygon. For each point, travel around it in a clockwise or counterclockwise manner, adding the circumcenters of each triangle containing it to the polygon.
+        </br></br></br></br></br></br></br></br></br></br></br>
+        <script src="processing.js"></script>
+        <script src="math.js"></script>
+        <script>
+        let programCode = function(p) {
+            p.size(600, 600);
+
+//Note that, in general, whenever distance or magnitude is referenced, I am referring to the square of the value, abbreviated for the sake of conciseness.
+const vec2=function(x,y) {
+    this.x=x;
+    this.y=y;
+    this.m=this.x**2+this.y**2;
+}
+vec2.prototype.distance=function(p2=new vec2(0,0)) {
+    return((this.x-p2.x)**2+(this.y-p2.y)**2);
+}
+vec2.prototype.minus=function(p2) {
+    return(new vec2(this.x-p2.x,this.y-p2.y));
+}
+vec2.prototype.info=function() {
+    return("("+this.x+", "+this.y+")");
+}
+vec2.prototype.draw=function() {
+    p.strokeWeight(10);
+    p.point(this.x,this.y);
+}
+vec2.prototype.equals=function(p2) {
+    if (this.x===p2.x&&this.y===p2.y) {
+        return(true);
+    } else {
+        return(false);
+    }
+}
+
+const edge=function(p1,p2) {
+    this.p1=p1;
+    this.p2=p2;
+}
+edge.prototype.equals=function(e2) {
+    if ((this.p1.x===e2.p1.x&&this.p1.y===e2.p1.y&&this.p2.x===e2.p2.x&&this.p2.y===e2.p2.y)||(this.p1.x===e2.p2.x&&this.p1.y===e2.p2.y&&this.p2.x===e2.p1.x&&this.p2.y===e2.p1.y)) {
+        return(true);
+    } else {
+        return(false);
+    }
+}
+
+const Polygon=function(Points=[]) {
+    this.Points=Points;
+    this.color=[Math.random()*255, Math.random()*255, Math.random()*255]
+}
+Polygon.prototype.sort=function(c) {
+    this.angles=[Math.atan2(c.y-this.Points[0].y,c.x-this.Points[0].x)];
+    for (let i=1; i<this.Points.length; i++) {
+        this.angles.push(Math.atan2(c.y-this.Points[i].y,c.x-this.Points[i].x));
+        let j=i;
+        while (j>0 && this.angles[j-1]>this.angles[j]) {
+            [this.angles[j-1],this.angles[j]]=[this.angles[j],this.angles[j-1]];
+            [this.Points[j-1],this.Points[j]]=[this.Points[j],this.Points[j-1]];
+            j--;
+        }
+    }
+}
+Polygon.prototype.draw=function() {
+    p.fill(this.color[0], this.color[1], this.color[2]);
+    p.strokeWeight(2);
+    p.stroke(255,255,255);
+    p.beginShape();
+    for (let i=0; i<this.Points.length; i++) {
+        p.vertex(this.Points[i].x, this.Points[i].y);
+    }
+    p.vertex(this.Points[0].x, this.Points[0].y);
+    p.endShape();
+}
+
+const Circle=function(cvec,rsqared) {
+    this.c=cvec;
+    this.r=rsqared;
+    //p.println("This circle has center ("+this.c.x+", "+this.c.y+") and radius "+Math.sqrt(this.r)+"!");
+}
+Circle.prototype.isInside=function(point) {
+    if (this.c.distance(point)<this.r) {
+        return(true);
+        p.println("The point ("+point.x+", "+point.y+") is inside the circle with center ("+this.c.x+", "+this.c.y+") and radius "+Math.sqrt(this.r)+"!");
+    } else {
+        return(false);
+        p.println("The point ("+point.x+", "+point.y+") is not inside the circle with center ("+this.c.x+", "+this.c.y+") and radius "+Math.sqrt(this.r)+"!");
+    }
+};
+
+const Triangle=function(x) {
+    if (x.length!==3) {
+        alert("Error! A triangle should have exactly three vertices!");
+    } else {
+        this.SignedArea=(x[0].x*(x[1].y-x[2].y)+x[1].x*(x[2].y-x[0].y)+x[2].x*(x[0].y-x[1].y))/2;
+        if (Math.abs(this.SignedArea)<=1e-9) {
+            alert("Error! A triangle's vertices shouldn't be collinear!");
+        } else {
+            this.x=x;
+            let x0=(this.x[0].m*(this.x[2].y-this.x[1].y)+this.x[1].m*(this.x[0].y-this.x[2].y)+this.x[2].m*(this.x[1].y-this.x[0].y))/(-4*this.SignedArea);
+            let y0=(this.x[0].m*(this.x[2].x-this.x[1].x)+this.x[1].m*(this.x[0].x-this.x[2].x)+this.x[2].m*(this.x[1].x-this.x[0].x))/(4*this.SignedArea);
+            let c=new vec2(x0,y0);
+            let r=this.x[0].distance(c); //Technically r^2, but there's no need to take the square root
+            this.circumcircle=new Circle(c,r);
+        }
+    }
+}
+Triangle.prototype.info=function() {
+    return("Vertices are: "+this.x[0].info()+", "+this.x[1].info()+", "+this.x[2].info()+"!\r\nThe circumcenter is at "+this.circumcircle.c.info());
+}
+Triangle.prototype.draw=function() {
+    let drawn=true;
+    for (let i=0; i<this.x.length; i++) {
+        if (this.x[i].x<0||this.x[i].x>p.width||this.x[i].y<0||this.x[i].y>p.height) {
+            drawn=false;
+        }
+    }
+    if (drawn) {
+        p.strokeWeight(2);
+        p.noFill();
+        p.triangle(this.x[0].x,this.x[0].y,this.x[1].x,this.x[1].y,this.x[2].x,this.x[2].y);
+    }
+}
+Triangle.prototype.shareSide=function(T2) {
+    let sharedPointCount=0;
+    for (let i=0; i<this.x.length; i++) {
+        for (let j=0; j<T2.x.length; j++) {
+            if (this.x[i].x===T2.x[j].x&&this.x[i].y===T2.x[j].y) {
+                sharedPointCount++;
+            }
+        }
+    }
+    if (sharedPointCount>=2) {
+        return(true);
+    } else {
+        return(false);
+    }
+}
+
+const bowyer=function (pointList) {
+    let triangulation=[];
+    triangulation.push(new Triangle([new vec2(-3*p.width,2*p.height), new vec2(p.width/2, -3*p.height), new vec2(4*p.width, 2*p.height)]));
+    for (let i=0; i<pointList.length; i++) {
+        let badTriangles=[];
+        let indices=[];
+        for (let j=0; j<triangulation.length; j++) {
+            if (triangulation[j].circumcircle.isInside(pointList[i])) {
+                badTriangles.push(triangulation[j]);
+                indices.splice(0,0,j);
+            }
+        }
+        let polygon=[];
+        for (let j=0; j<badTriangles.length; j++) {
+            for (let k=0; k<3; k++) {
+                let temp=new edge(badTriangles[j].x[k],badTriangles[j].x[(k+1)%3]);
+                let duplicate=false;
+                for (let l=0; l<polygon.length&&!duplicate; l++) {
+                    if (temp.equals(polygon[l])) {
+                        polygon.splice(l,1);
+                        duplicate=true;
+                    }
+                }
+                if (!duplicate) {
+                    polygon.push(temp);
+                }
+            }
+        }
+        for (let j=0; j<indices.length; j++) {
+            triangulation.splice(indices[j],1);
+        }
+        for (let j=0; j<polygon.length; j++) {
+            triangulation.push(new Triangle([polygon[j].p1,polygon[j].p2,pointList[i]]));
+        }
+    }
+    return(triangulation);
+}
+
+const Voronoi=function(PL, triangulation) {
+    let Polygons=[];
+    for (let i=0; i<PL.length; i++) {
+        Polygons.push(new Polygon());
+        for (let j=0; j<triangulation.length; j++) {
+            for (let k=0; k<triangulation[j].x.length; k++) {
+                if (PL[i].equals(triangulation[j].x[k])) {
+                    Polygons[i].Points.push(triangulation[j].circumcircle.c);
+                }
+            }
+        }
+        Polygons[i].sort(PL[i]);
+    }
+    return(Polygons);
+}
+
+//let PL=[new vec2(p.width/2, p.height/2), new vec2(p.width/2, p.height/4), new vec2(p.width/2, 3*p.height/4), new vec2(p.width/2-Math.sqrt(3)*p.width/8,3*p.height/8), new vec2(p.width/2-Math.sqrt(3)*p.width/8,5*p.height/8), new vec2(p.width/2+Math.sqrt(3)*p.width/8,3*p.height/8), new vec2(p.width/2+Math.sqrt(3)*p.width/8,5*p.height/8)];
+//let PL=[new vec2(p.width/18, p.height/2), new vec2(p.width/20, p.height/4), new vec2(p.width/20, 3*p.height/4)];
+let PL=[];
+for (let i=0; i<20; i++) {
+    PL.push(new vec2(Math.random()*p.width,Math.random()*p.height));
+//    PL.push(new vec2(p.width/4*Math.cos(i/40*2*Math.PI)+p.width/2,p.height/4*Math.sin(i/40*2*Math.PI)+p.height/2));
+}
+//let PL=[new vec2(p.width/3, p.height/3), new vec2(2*p.width/3, p.height/3), new vec2(2* p.width/3, 2*p.height/3), new vec2(p.width/3, 2*p.height/3)];
+let N=3;
+/*for (let i=0; i<N; i++) {
+    for (let j=0; j<N; j++) {
+        PL.push(new vec2(p.width*(i+1/2)/(N),p.height*(j+1/2)/(N)));
+    }
+}*/
+/*for (let P=-N; P<=N; P++) {
+    for (let Q=Math.max(-N-P,-N); Q<=Math.min(N, N-P); Q++) {
+        PL.push(new vec2(p.width/2+(P+Q/2)/(2*N+1)*p.width, p.height/2+Q/(2*N+1)*Math.sqrt(3)/2*p.height));
+    }
+}*/
+
+let Triangles=bowyer(PL);
+let Poly=Voronoi(PL, Triangles);
+
+let colors=[];
+for (let i=0; i<Poly.length; i++) {
+    colors.push(Poly[i].color);
+}
+
+let selection=-1;
+p.mousePressed=function() {
+    selection=-1;
+    for (let i=0; i<PL.length; i++) {
+        if (PL[i].distance(new vec2(p.mouseX, p.mouseY))<25) {
+            selection=i;
+        }
+    }
+    if (p.mouseButton === p.LEFT) {
+        if (selection===-1) {
+            PL.push(new vec2(p.mouseX, p.mouseY));
+            Triangles=bowyer(PL);
+            Poly=Voronoi(PL, Triangles);
+            colors.push(Poly[Poly.length-1].color);
+            for (let i=0; i<Poly.length; i++) {
+                Poly[i].color=colors[i];
+            }
+            selection=Poly.length-1;
+        }
+    } else if (p.mouseButton === p.RIGHT) {
+        if (selection>=0) {
+            PL.splice(selection,1);
+            colors.splice(selection,1);
+            Triangles=bowyer(PL);
+            Poly=Voronoi(PL, Triangles);
+            for (let i=0; i<Poly.length; i++) {
+                Poly[i].color=colors[i];
+            }
+        }
+    }
+};
+p.mouseDragged=function() {
+    if (selection>=0 && p.mouseButton === p.LEFT) {
+        let mouseVec=new vec2(p.mouseX, p.mouseY);
+        let valid=true;
+        /*PL[selection].x=p.mouseX;
+        PL[selection].y=p.mouseY;
+        PL[selection].m=PL[selection].distance();*/
+        for (let i=0; i<PL.length; i++) {
+            if (PL[i].distance(mouseVec)<100&&i!==selection) {
+                valid=false;
+            }
+        }
+        if (valid) {
+            PL[selection]=mouseVec;
+        }
+        Triangles=bowyer(PL);
+        Poly=Voronoi(PL, Triangles);
+        for (let i=0; i<Poly.length; i++) {
+            Poly[i].color=colors[i];
+        }
+    }
+};
+
+p.draw=function() {
+    //p.pushMatrix();
+    //p.scale(0.25);
+    //p.translate(1.5*p.width,1.5*p.height);
+    p.background(255,255,255);
+    for (let i=0; i<Poly.length; i++) {
+        Poly[i].draw();
+    }
+    p.stroke(0,0,0);
+    p.noFill();
+    //p.rect(0,0,p.width,p.height);
+    for (let i=0; i<PL.length; i++) {
+        for (let j=0; j<PL.length; j++) {
+            if (PL[i].distance(PL[j])<100) {
+
+            }
+        }
+        PL[i].draw();
+    }
+    for (let i=0; i<Triangles.length; i++) {
+        p.stroke(0,0,0);
+        Triangles[i].draw();
+        /*for (let j=i+1; j<Triangles.length; j++) {
+            if (Triangles[i].shareSide(Triangles[j])) {
+                p.line(Triangles[i].circumcircle.c.x,Triangles[i].circumcircle.c.y,Triangles[j].circumcircle.c.x,Triangles[j].circumcircle.c.y)
+            }
+        }*/
+    }
+    //p.popMatrix();
+}
+            };
+
+        // Get the canvas that ProcessingJS will use
+        let canvas = document.getElementById("mycanvas"); 
+        // Pass the function to ProcessingJS constructor
+        let processingInstance = new Processing(canvas, programCode); 
+        </script>
+        <script>
+        window.addEventListener('resize', function() {
+            // 1. Get your new desired dimensions
+            var newWidth = math.min(600,window.innerWidth-100,window.innerHeight-100);
+
+            // 2. Get the Processing instance bound to your canvas ID
+            var processingInstance = Processing.getInstanceById('mycanvas');
+
+            // 3. Update internal sketch dimensions and resize canvas
+            if (processingInstance) {
+                processingInstance.size(newWidth, newWidth);
+            }
+        });
+        window.addEventListener('DOMContentLoaded', function() {
+            // 1. Get your new desired dimensions
+            var newWidth = math.min(600,window.innerWidth-100,window.innerHeight-100);
+
+            // 2. Get the Processing instance bound to your canvas ID
+            var processingInstance = Processing.getInstanceById('mycanvas');
+
+            // 3. Update internal sketch dimensions and resize canvas
+            if (processingInstance) {
+                processingInstance.size(newWidth, newWidth);
+            }
+        });
+        </script>
+    </body>
+</html>
